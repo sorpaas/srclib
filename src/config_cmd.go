@@ -105,11 +105,7 @@ func (c *ConfigCmd) Execute(args []string) error {
 		return err
 	}
 
-	currentRepo, err := OpenRepo(string(c.Args.Dir))
-	if err != nil {
-		return err
-	}
-	buildStore, err := buildstore.NewRepositoryStore(currentRepo.RootDir)
+	buildStore, err := buildstore.NewRepositoryStore(c.RepoRootDir)
 	if err != nil {
 		return err
 	}
@@ -128,7 +124,7 @@ func (c *ConfigCmd) Execute(args []string) error {
 	// update SourceUnit.Files list? SourceUnit.Globs could help here...)
 	if !c.NoCacheWrite {
 		for _, u := range cfg.SourceUnits {
-			filename := buildStore.FilePath(currentRepo.CommitID, plan.SourceUnitDataFilename(unit.SourceUnit{}, u))
+			filename := buildStore.FilePath(c.CommitID, plan.SourceUnitDataFilename(unit.SourceUnit{}, u))
 			if err := rwvfs.MkdirAll(buildStore, filepath.Dir(filename)); err != nil {
 				return err
 			}

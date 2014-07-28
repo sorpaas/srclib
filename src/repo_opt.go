@@ -8,7 +8,7 @@ import (
 )
 
 func SetRepoOptDefaults(c *flags.Command) {
-	currentRepo, err := OpenRepo(Dir)
+	currentRepo, err := OpenRepo(".")
 	if err != nil {
 		log.Println(err)
 		return
@@ -21,4 +21,12 @@ func SetRepoOptDefaults(c *flags.Command) {
 		log.Fatal(err)
 	}
 	SetOptionDefaultValue(c.Group, "subdir", subdir)
+
+	rootdir, err := filepath.Rel(absDir, currentRepo.RootDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	SetOptionDefaultValue(c.Group, "repo-root", rootdir)
+
+	SetOptionDefaultValue(c.Group, "commit-id", currentRepo.CommitID)
 }

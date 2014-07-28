@@ -35,7 +35,7 @@ func scanUnitsIntoConfig(cfg *config.Repository, configOpt config.Options, execO
 		scanners[i] = scanner
 	}
 
-	units, err := scan.ScanMulti(scanners, scan.Options{configOpt})
+	units, err := scan.ScanMulti(scanners, scan.Options{configOpt.ToolOptions})
 	if err != nil {
 		return err
 	}

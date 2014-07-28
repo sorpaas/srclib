@@ -11,6 +11,7 @@ import (
 	"github.com/sourcegraph/makex"
 	"github.com/sourcegraph/rwvfs"
 	"github.com/sourcegraph/srclib/buildstore"
+	"github.com/sourcegraph/srclib/config"
 	"github.com/sourcegraph/srclib/toolchain"
 
 	"github.com/sourcegraph/srclib/plan"
@@ -30,10 +31,12 @@ Requires that "src config" has already been run.
 		log.Fatal(err)
 	}
 
-	_ = c
+	SetRepoOptDefaults(c)
 }
 
 type PlanCmd struct {
+	config.Options
+
 	Args struct {
 		Dir Directory `name:"DIR" default:"." description:"root directory of tree to plan"`
 	} `positional-args:"yes"`
@@ -47,17 +50,13 @@ func (c *PlanCmd) Execute(args []string) error {
 	}
 
 	// Get all .srclib-cache/**/*.unit.v0.json files.
-	currentRepo, err := OpenRepo(string(c.Args.Dir))
-	if err != nil {
-		return err
-	}
-	buildStore, err := buildstore.NewRepositoryStore(currentRepo.RootDir)
+	buildStore, err := buildstore.NewRepositoryStore(c.RepoRootDir)
 	if err != nil {
 		return err
 	}
 	var unitFiles []string
 	unitSuffix := buildstore.DataTypeSuffix(unit.SourceUnit{})
-	w := fs.WalkFS(buildStore.CommitPath(currentRepo.CommitID), buildStore)
+	w := fs.WalkFS(buildStore.CommitPath(c.CommitID), buildStore)
 	for w.Step() {
 		if strings.HasSuffix(w.Path(), unitSuffix) {
 			unitFiles = append(unitFiles, w.Path())
@@ -68,7 +67,7 @@ func (c *PlanCmd) Execute(args []string) error {
 		return fmt.Errorf("no source unit files found. Did you run `src config`?")
 	}
 
-	buildDataDir, err := buildstore.BuildDir(buildStore, currentRepo.CommitID)
+	buildDataDir, err := buildstore.BuildDir(buildStore, c.CommitID)
 	if err != nil {
 		return err
 	}
@@ -108,7 +107,7 @@ func (c *PlanCmd) Execute(args []string) error {
 			mf.Rules = append(mf.Rules, &makex.BasicRule{
 				TargetFile:  target,
 				PrereqFiles: []string{filepath.Join(filepath.Dir(buildDataDir), unitFile)},
-				RecipeCmds:  []string{fmt.Sprintf("src tool %q %q < $^ 1> $@", toolRef.Toolchain, toolRef.Subcmd)},
+				RecipeCmds:  []string{fmt.Sprintf("src tool -m docker %q %q < $^ 1> $@", toolRef.Toolchain, toolRef.Subcmd)},
 			})
 		}
 	}
@@ -117,11 +116,18 @@ func (c *PlanCmd) Execute(args []string) error {
 		PrereqFiles: allTargets,
 	})
 
+	// The special make target .DELETE_ON_ERROR makes it so that the targets for
+	// failed recipes are deleted. This lets us do "1> $@" to write to the
+	// target file without erroneously satisfying the target if the recipe
+	// fails. makex has this behavior by default and does not heed
+	// .DELETE_ON_ERROR.
+	mf.Rules = append(mf.Rules, &makex.BasicRule{TargetFile: ".DELETE_ON_ERROR"})
+
 	mfData, err := makex.Marshal(&mf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	mfFile := buildStore.FilePath(currentRepo.CommitID, "Makefile")
+	mfFile := buildStore.FilePath(c.CommitID, "Makefile")
 	if err := rwvfs.MkdirAll(buildStore, filepath.Dir(mfFile)); err != nil {
 		return err
 	}

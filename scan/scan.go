@@ -12,7 +12,7 @@ import (
 )
 
 type Options struct {
-	config.Options
+	config.ToolOptions
 }
 
 func ScanMulti(scanners []toolchain.Tool, opt Options) ([]*unit.SourceUnit, error) {

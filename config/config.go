@@ -78,6 +78,12 @@ func (c *Repository) finish(repoURI repo.URI) (*Repository, error) {
 }
 
 type Options struct {
+	RepoRootDir string `long:"repo-root" description:"repository root directory" value-name:"DIR"`
+	CommitID    string `long:"commit-id" description:"repository commit ID" value-name:"ID"`
+	ToolOptions
+}
+
+type ToolOptions struct {
 	Repo   string `long:"repo" description:"repository URI" value-name:"URI"`
 	Subdir string `long:"subdir" description:"subdirectory in repository" value-name:"DIR"`
 }
