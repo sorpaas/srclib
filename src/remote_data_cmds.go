@@ -48,11 +48,11 @@ func (c *PullCmd) Execute(args []string) error {
 		log.Printf("Listing remote build files for repository %q commit %q...", repo.URI(), repo.CommitID)
 	}
 
-	// SAMER style?
 	remoteFiles, resp, err := apiclient.BuildData.List(client.RepoRevSpec{
 		RepoSpec: client.RepoSpec{URI: string(repo.URI())},
 		CommitID: repo.CommitID,
 	}, nil)
+
 	if err != nil {
 		if hresp, ok := resp.(*client.HTTPResponse); hresp != nil && ok && hresp.StatusCode == http.StatusNotFound {
 			log.Println("No remote build files found.")
@@ -183,7 +183,7 @@ func uploadFile(repoStore *buildstore.RepositoryStore, file *buildstore.BuildDat
 	fileSpec := client.BuildDataFileSpec{
 		RepoRev: client.RepoRevSpec{
 			RepoSpec: client.RepoSpec{URI: repoURI},
-			Rev:     file.CommitID,
+			Rev:      file.CommitID,
 		},
 		Path: file.Path,
 	}
